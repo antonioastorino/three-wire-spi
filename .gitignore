@@ -1,1 +1,4 @@
 .pio
+*.swp
+*.swo
+.DS_Storage
