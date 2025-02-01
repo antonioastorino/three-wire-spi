@@ -14,8 +14,8 @@ void setup()
 
 void loop()
 {
-    uint8_t numOfBytesToSend = 10;
-    SPIMaster.setOutputBufferAt(0, 0xff);
+    uint8_t numOfBytesToSend = 2;
+    SPIMaster.setOutputBufferAt(0, 0x5);
     SPIMaster.setOutputBufferAt(1, 2);
     SPIMaster.sendAndReceive(CS_n, numOfBytesToSend);
     Serial.print(SPIMaster.getReceivedBufferAt(0), BIN);
@@ -34,7 +34,6 @@ void setup()
 
 void loop()
 {
-    Serial.println("hello");
     delay(1000);
 }
 #endif

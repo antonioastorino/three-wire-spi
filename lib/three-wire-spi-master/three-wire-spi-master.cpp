@@ -13,27 +13,36 @@ ThreeWireSPIMaster::ThreeWireSPIMaster(void)
 uint8_t ThreeWireSPIMaster::__receiveByte()
 {
     uint8_t receivedByte = 0;
+    Serial.print("Receiving ");
     for (int i = 0; i < 8; i++)
     {
+        Serial.print(".");
         digitalWrite(CLK, HIGH);
         delayMicroseconds(PULSE_US);
+        delay(200);
         receivedByte |= (uint8_t)digitalRead(DATA) << i;
         digitalWrite(CLK, LOW);
         delayMicroseconds(PULSE_US);
+        delay(200);
     }
+    Serial.println();
     return receivedByte;
 }
 
 void ThreeWireSPIMaster::__sendByte(uint8_t byteToSend)
 {
+    Serial.print("Sending ");
+    Serial.println(byteToSend, HEX);
     for (int i = 0; i < 8; i++)
     {
         digitalWrite(CLK, HIGH);
         digitalWrite(DATA, byteToSend & 1);
         byteToSend >>= 1;
         delayMicroseconds(PULSE_US);
+        delay(200);
         digitalWrite(CLK, LOW);
         delayMicroseconds(PULSE_US);
+        delay(200);
     }
 }
 
@@ -45,6 +54,9 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
     uint8_t byteNumber         = 0;
     pinMode(DATA, OUTPUT);
     ThreeWireSPIMaster::__sendByte(numOfBytesToSend);
+    Serial.print("Sending value ");
+    Serial.print(numOfBytesToSend);
+    Serial.println(" as number of successive bytes");
     for (byteNumber = 0; byteNumber < numOfBytesToSend; byteNumber++)
     {
         ThreeWireSPIMaster::__sendByte(this->__outputBuffer[byteNumber]);
@@ -67,4 +79,7 @@ void ThreeWireSPIMaster::setOutputBufferAt(uint8_t byteNumber, uint8_t value)
     this->__outputBuffer[byteNumber] = value;
 }
 
-uint8_t ThreeWireSPIMaster::getReceivedBufferAt(uint8_t byteNumber) { return this->__inputBuffer[byteNumber]; }
+uint8_t ThreeWireSPIMaster::getReceivedBufferAt(uint8_t byteNumber)
+{
+    return this->__inputBuffer[byteNumber];
+}

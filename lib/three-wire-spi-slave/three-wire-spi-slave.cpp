@@ -49,12 +49,8 @@ ISR(PCINT0_vect)
     }
     if (!__requestReceived && (digitalRead(SLAVE_CLK) == LOW))
     {
-        if (__inputPayloadByteCount == __numOfExpectedBytes)
-        {
-            __requestReceived = true;
-            __processRequest();
-            return;
-        }
+        Serial.print("Payload count ");
+        Serial.println(__inputPayloadByteCount);
         __inputBuffer[__inputPayloadByteCount] |= (uint8_t)digitalRead(SLAVE_DATA) << __clockCount;
         __clockCount++;
         if (__clockCount == 8)
@@ -62,10 +58,20 @@ ISR(PCINT0_vect)
             __clockCount = 0;
             __inputPayloadByteCount += 1;
         }
+        if (__inputPayloadByteCount == __numOfExpectedBytes)
+        {
+            __requestReceived = true;
+            __processRequest();
+        }
         return;
     }
     if (__requestReceived && (digitalRead(SLAVE_CLK) == HIGH))
     {
+
+        Serial.print("byte: ");
+        Serial.print(__outputPayloadByteCount);
+        Serial.print(" of: ");
+        Serial.println(__numOfBytesToSend);
         if (__outputPayloadByteCount > __numOfBytesToSend)
         {
             // This should not happen: we are asked to send more bytes than intended
@@ -76,6 +82,8 @@ ISR(PCINT0_vect)
         __currentOutputByte >>= 1;
         if (__clockCount == 8)
         {
+            Serial.print("sent value: ");
+            Serial.println(__outputBuffer[__outputPayloadByteCount]);
             __clockCount = 0;
             __outputPayloadByteCount += 1;
             __currentOutputByte = __outputBuffer[__outputPayloadByteCount];
@@ -95,11 +103,11 @@ static void __enableSPI()
         __numOfExpectedBytes    = 0;
         __clockCount            = 0;
         __inputPayloadByteCount = 0;
+        __headerReceived        = false;
         __requestReceived       = false;
         __attachInterruptOnCLK();
     }
 }
-
 
 void __processRequest()
 {
@@ -119,11 +127,13 @@ void __processRequest()
     else
     {
         // TODO: Fill in the output buffer with a meaningful answer.
-        __outputBuffer[0]                   = 0xff;
-        __outputBuffer[MAX_BUFFER_SIZE - 1] = 0xff;
-        __numOfBytesToSend                  = MAX_BUFFER_SIZE;
+        __outputBuffer[0]  = 0xa5;
+        __outputBuffer[1]  = 0xa5;
+        __outputBuffer[2]  = 0xa5;
+        __numOfBytesToSend = 3;
     }
-    __currentOutputByte = __outputBuffer[0]; // this is the first byte that will be sent
+    __currentOutputByte      = __outputBuffer[0]; // this is the first byte that will be sent
+    __outputPayloadByteCount = 0;
     Serial.print("Sending bytes: ");
     Serial.println(__numOfBytesToSend);
 }
