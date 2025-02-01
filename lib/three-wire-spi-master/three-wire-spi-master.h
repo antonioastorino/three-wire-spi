@@ -1,7 +1,7 @@
 #ifndef THREE_WIRE_SPI_MASTER
 #define THREE_WIRE_SPI_MASTER
 #include <Arduino.h>
-#define MAX_BUFFER_SIZE (255)
+#include "common.h"
 
 class ThreeWireSPIMaster
 {
@@ -17,5 +17,7 @@ public:
 
     void initialize(void);
     void sendAndReceive(uint8_t CS_n, uint8_t bytesToSend);
+    void setOutputBufferAt(uint8_t byteNumber, uint8_t value); 
+    uint8_t getReceivedBufferAt(uint8_t byteNumber);
 };
 #endif /* THREE_WIRE_SPI_MASTER */

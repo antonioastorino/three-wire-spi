@@ -1,7 +1,7 @@
 #include "three-wire-spi-master.h"
-#define PULSE_US (100)
-#define CLK (13)
-#define DATA (12)
+#define PULSE_US (1000)
+#define CLK (15)
+#define DATA (14)
 
 ThreeWireSPIMaster::ThreeWireSPIMaster(void)
 {
@@ -40,10 +40,10 @@ void ThreeWireSPIMaster::__sendByte(uint8_t byteToSend)
 void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
 {
     digitalWrite(CS_n, LOW);
-    pinMode(DATA, OUTPUT);
     delayMicroseconds(400);
     uint8_t expectedNumOfBytes = 0;
     uint8_t byteNumber         = 0;
+    pinMode(DATA, OUTPUT);
     ThreeWireSPIMaster::__sendByte(numOfBytesToSend);
     for (byteNumber = 0; byteNumber < numOfBytesToSend; byteNumber++)
     {
@@ -51,11 +51,20 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
     }
     // Give the slave the time to process the request
     pinMode(DATA, INPUT);
-    delay(1);
+    delay(100);
     expectedNumOfBytes = ThreeWireSPIMaster::__receiveByte();
+    Serial.print("Expecting bytes: ");
+    Serial.println(expectedNumOfBytes);
     for (byteNumber = 0; byteNumber < expectedNumOfBytes; byteNumber++)
     {
         this->__inputBuffer[byteNumber] = ThreeWireSPIMaster::__receiveByte();
     }
     digitalWrite(CS_n, HIGH);
 }
+
+void ThreeWireSPIMaster::setOutputBufferAt(uint8_t byteNumber, uint8_t value)
+{
+    this->__outputBuffer[byteNumber] = value;
+}
+
+uint8_t ThreeWireSPIMaster::getReceivedBufferAt(uint8_t byteNumber) { return this->__inputBuffer[byteNumber]; }
