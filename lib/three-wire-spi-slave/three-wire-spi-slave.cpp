@@ -87,13 +87,9 @@ ISR(PCINT0_vect)
             if (!__headerSent)
             {
                 __headerSent = true;
-                Serial.print("sent header: ");
-                Serial.println(__numOfBytesToSend);
             }
             else
             {
-                Serial.print("sent value: ");
-                Serial.println(__outputBuffer[__outputPayloadByteCount]);
                 __outputPayloadByteCount += 1;
             }
             __clockCount = 0;

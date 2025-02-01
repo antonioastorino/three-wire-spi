@@ -50,7 +50,7 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
 {
     digitalWrite(CS_n, LOW);
     delayMicroseconds(400);
-    uint8_t expectedNumOfBytes = 0;
+    this->__expectedNumOfBytes = 0;
     uint8_t byteNumber         = 0;
     pinMode(DATA, OUTPUT);
     ThreeWireSPIMaster::__sendByte(numOfBytesToSend);
@@ -64,10 +64,10 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
     // Give the slave the time to process the request
     pinMode(DATA, INPUT);
     delay(100);
-    expectedNumOfBytes = ThreeWireSPIMaster::__receiveByte();
+    this->__expectedNumOfBytes = ThreeWireSPIMaster::__receiveByte();
     Serial.print("Expecting bytes: ");
-    Serial.println(expectedNumOfBytes);
-    for (byteNumber = 0; byteNumber < expectedNumOfBytes; byteNumber++)
+    Serial.println(this->__expectedNumOfBytes);
+    for (byteNumber = 0; byteNumber < this->__expectedNumOfBytes; byteNumber++)
     {
         this->__inputBuffer[byteNumber] = ThreeWireSPIMaster::__receiveByte();
     }
@@ -83,3 +83,5 @@ uint8_t ThreeWireSPIMaster::getReceivedBufferAt(uint8_t byteNumber)
 {
     return this->__inputBuffer[byteNumber];
 }
+
+uint8_t ThreeWireSPIMaster::getExpectedNumOfBytes(void) { return this->__expectedNumOfBytes; }

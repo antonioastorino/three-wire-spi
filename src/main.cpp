@@ -15,12 +15,16 @@ void setup()
 void loop()
 {
     uint8_t numOfBytesToSend = 2;
+    uint8_t numOfExpectedBytes = 0;
     SPIMaster.setOutputBufferAt(0, 0x5);
     SPIMaster.setOutputBufferAt(1, 2);
     SPIMaster.sendAndReceive(CS_n, numOfBytesToSend);
-    Serial.print(SPIMaster.getReceivedBufferAt(0), BIN);
-    Serial.print(" - ");
-    Serial.println(SPIMaster.getReceivedBufferAt(1), BIN);
+    Serial.println("Received:");
+    numOfExpectedBytes = SPIMaster.getExpectedNumOfBytes();
+    for (uint8_t byteNr = 0;byteNr < numOfExpectedBytes; byteNr++) {  
+        Serial.println(SPIMaster.getReceivedBufferAt(byteNr), BIN);
+    }
+    Serial.println("--------------------");
     delay(2000);
 }
 #else
