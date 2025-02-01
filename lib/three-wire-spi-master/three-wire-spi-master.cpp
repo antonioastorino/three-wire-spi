@@ -1,5 +1,5 @@
 #include "three-wire-spi-master.h"
-#define PULSE_US (1000)
+#define PULSE_US (100)
 #define CLK (15)
 #define DATA (14)
 
@@ -19,11 +19,9 @@ uint8_t ThreeWireSPIMaster::__receiveByte()
         Serial.print(".");
         digitalWrite(CLK, HIGH);
         delayMicroseconds(PULSE_US);
-        delay(200);
         receivedByte |= (uint8_t)digitalRead(DATA) << i;
         digitalWrite(CLK, LOW);
         delayMicroseconds(PULSE_US);
-        delay(200);
     }
     Serial.println();
     return receivedByte;
@@ -39,10 +37,8 @@ void ThreeWireSPIMaster::__sendByte(uint8_t byteToSend)
         digitalWrite(DATA, byteToSend & 1);
         byteToSend >>= 1;
         delayMicroseconds(PULSE_US);
-        delay(200);
         digitalWrite(CLK, LOW);
         delayMicroseconds(PULSE_US);
-        delay(200);
     }
 }
 
@@ -54,9 +50,6 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
     uint8_t byteNumber         = 0;
     pinMode(DATA, OUTPUT);
     ThreeWireSPIMaster::__sendByte(numOfBytesToSend);
-    Serial.print("Sending value ");
-    Serial.print(numOfBytesToSend);
-    Serial.println(" as number of successive bytes");
     for (byteNumber = 0; byteNumber < numOfBytesToSend; byteNumber++)
     {
         ThreeWireSPIMaster::__sendByte(this->__outputBuffer[byteNumber]);
@@ -65,8 +58,6 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
     pinMode(DATA, INPUT);
     delay(100);
     this->__expectedNumOfBytes = ThreeWireSPIMaster::__receiveByte();
-    Serial.print("Expecting bytes: ");
-    Serial.println(this->__expectedNumOfBytes);
     for (byteNumber = 0; byteNumber < this->__expectedNumOfBytes; byteNumber++)
     {
         this->__inputBuffer[byteNumber] = ThreeWireSPIMaster::__receiveByte();

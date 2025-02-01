@@ -50,8 +50,6 @@ ISR(PCINT0_vect)
     }
     if (!__requestReceived && (digitalRead(SLAVE_CLK) == LOW))
     {
-        Serial.print("Payload count ");
-        Serial.println(__inputPayloadByteCount);
         __inputBuffer[__inputPayloadByteCount] |= (uint8_t)digitalRead(SLAVE_DATA) << __clockCount;
         __clockCount++;
         if (__clockCount == 8)
@@ -69,10 +67,6 @@ ISR(PCINT0_vect)
     if (__requestReceived && (digitalRead(SLAVE_CLK) == HIGH))
     {
 
-        Serial.print("byte: ");
-        Serial.print(__outputPayloadByteCount);
-        Serial.print(" of: ");
-        Serial.println(__numOfBytesToSend);
         if (__outputPayloadByteCount > __numOfBytesToSend)
         {
             __detachInterruptOnCLK();
