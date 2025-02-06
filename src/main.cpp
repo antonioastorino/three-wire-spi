@@ -21,14 +21,15 @@ void setup() { Serial.begin(115200); }
 
 void loop()
 {
-    uint8_t numOfBytesToSend   = 2;
-    uint8_t numOfExpectedBytes = 0;
+    uint8_t numOfBytesToSend = 2;
+    uint8_t receivedBytes    = 0;
     SPIMaster.setOutputBufferAt(0, 0x5);
     SPIMaster.setOutputBufferAt(1, 2);
     SPIMaster.sendAndReceive(numOfBytesToSend);
-    Serial.println("Received:");
-    numOfExpectedBytes = SPIMaster.getExpectedNumOfBytes();
-    for (uint8_t byteNr = 0; byteNr < numOfExpectedBytes; byteNr++)
+    receivedBytes = SPIMaster.getExpectedNumOfBytes();
+    Serial.println("Should receive: ");
+    Serial.println(receivedBytes);
+    for (uint8_t byteNr = 0; byteNr < receivedBytes; byteNr++)
     {
         Serial.println(SPIMaster.getReceivedBufferAt(byteNr), BIN);
     }
@@ -42,13 +43,60 @@ void loop()
  * responds to them accordingly.
  */
 #include "three-wire-spi-slave.h"
+
 void setup()
 {
     Serial.begin(115200);
-    ThreeWireSPISlaveInit();
+    ThreeWireSPISlave::init();
 }
 
-void loop() { delay(1000); }
+void loop()
+{
+    uint8_t numOfBytesToSend = 0;
+    uint8_t receivedBytes    = 0;
+    while (ThreeWireSPISlave::getState() != REQUEST_RECEIVED)
+    {
+        delay(1);
+    }
+
+    numOfBytesToSend = 0;
+    receivedBytes    = ThreeWireSPISlave::getNumberOfReceivedBytes();
+
+    Serial.println("--------------------");
+    Serial.print("Received bytes: ");
+    Serial.println(receivedBytes);
+    if (receivedBytes == 0)
+    {
+        // An empty payload is interpreted as a "ping" command. Respond with the magic byte 0xa5
+        ThreeWireSPISlave::outputBuffer[0] == 0xa5;
+        numOfBytesToSend = 1;
+    }
+    else if (ThreeWireSPISlave::inputBuffer[0] == 0xff)
+    {
+        // LOOP back
+        memcpy(
+            (void*)ThreeWireSPISlave::outputBuffer,
+            (const void*)ThreeWireSPISlave::inputBuffer,
+            receivedBytes);
+        numOfBytesToSend = receivedBytes;
+    }
+    else
+    {
+        // TODO: Fill in the output buffer with a meaningful answer.
+        ThreeWireSPISlave::outputBuffer[0] = 0xa5;
+        ThreeWireSPISlave::outputBuffer[1] = 0xa5;
+        ThreeWireSPISlave::outputBuffer[2] = 0xa5;
+        numOfBytesToSend                   = 3;
+    }
+    ThreeWireSPISlave::sendResponse(numOfBytesToSend);
+    Serial.print("Sending bytes: ");
+    Serial.println(numOfBytesToSend);
+    while (ThreeWireSPISlave::getState() != IDLE)
+    {
+        ;
+    }
+}
+
 #else
 #error "Please define MODE_MASTER or MODE_SLAVE flags."
 #endif /* defined(MODE...) */

@@ -15,17 +15,14 @@ ThreeWireSPIMaster::ThreeWireSPIMaster(uint8_t cs_n)
 uint8_t ThreeWireSPIMaster::__receiveByte()
 {
     uint8_t receivedByte = 0;
-    Serial.print("Receiving ");
     for (int i = 0; i < 8; i++)
     {
-        Serial.print(".");
         digitalWrite(CLK, HIGH);
         delayMicroseconds(PULSE_US);
         receivedByte |= (uint8_t)digitalRead(DATA) << i;
         digitalWrite(CLK, LOW);
         delayMicroseconds(PULSE_US);
     }
-    Serial.println();
     return receivedByte;
 }
 

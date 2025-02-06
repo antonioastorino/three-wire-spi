@@ -7,23 +7,20 @@
 #define __attachInterruptOnCLK() PCMSK0 |= B00100000
 #define __detachInterruptOnCLK() PCMSK0 &= ~(B00100000)
 
-volatile uint8_t __clockCount                    = 0;
-volatile uint8_t __inputPayloadByteCount         = 0;
-volatile uint8_t __outputPayloadByteCount        = 0;
-volatile uint8_t __numOfExpectedBytes            = 0;
-volatile uint8_t __numOfBytesToSend              = 0;
-volatile uint8_t __inputBuffer[MAX_BUFFER_SIZE]  = {0};
-volatile uint8_t __outputBuffer[MAX_BUFFER_SIZE] = {0};
-volatile uint8_t __currentOutputByte             = 0;
+static volatile uint8_t __clockCount;
+static volatile uint8_t __inputPayloadByteCount;
+static volatile uint8_t __outputPayloadByteCount;
+static volatile uint8_t __numOfExpectedBytes;
+static volatile uint8_t __numOfBytesToSend;
+static volatile uint8_t __currentOutputByte;
+static volatile State __state = IDLE;
 
-volatile bool __headerReceived  = false;
-volatile bool __requestReceived = false;
-volatile bool __headerSent      = false;
-static void __processRequest();
+volatile uint8_t ThreeWireSPISlave::inputBuffer[MAX_BUFFER_SIZE]  = {0};
+volatile uint8_t ThreeWireSPISlave::outputBuffer[MAX_BUFFER_SIZE] = {0};
 
 static void __enableSPI();
 
-void ThreeWireSPISlaveInit(void)
+void ThreeWireSPISlave::init(void)
 {
     pinMode(CS_n, INPUT);
     pinMode(CLK, INPUT);
@@ -32,60 +29,94 @@ void ThreeWireSPISlaveInit(void)
     __enableInterruptPortB();
 }
 
+State ThreeWireSPISlave::getState(void) { return __state; }
+
+uint8_t ThreeWireSPISlave::getNumberOfReceivedBytes(void) { return __inputPayloadByteCount; }
+
+void ThreeWireSPISlave::sendResponse(uint8_t bytesToSend)
+{
+    pinMode(DATA, OUTPUT); // DATA becomes MISO
+    __state = REQUEST_PROCESSED;
+    __numOfBytesToSend  = bytesToSend;
+    __currentOutputByte = __numOfBytesToSend; // this is the first byte that will be sent
+}
+
 ISR(PCINT0_vect)
 {
-    if (!__headerReceived && (digitalRead(CLK) == LOW))
+    if (__state == RECEIVING_HEADER && (digitalRead(CLK) == LOW))
     {
         __numOfExpectedBytes |= (uint8_t)digitalRead(DATA) << __clockCount;
-        __clockCount++;
-        if (__clockCount == 8)
+        __clockCount = (__clockCount + 1) & 0b111;
+        if (__clockCount == 0)
         {
-            __headerReceived = true;
-            __clockCount     = 0;
-        }
-        return;
-    }
-    if (!__requestReceived && (digitalRead(CLK) == LOW))
-    {
-        __inputBuffer[__inputPayloadByteCount] |= (uint8_t)digitalRead(DATA) << __clockCount;
-        __clockCount++;
-        if (__clockCount == 8)
-        {
-            __clockCount = 0;
-            __inputPayloadByteCount += 1;
-        }
-        if (__inputPayloadByteCount == __numOfExpectedBytes)
-        {
-            __requestReceived = true;
-            __processRequest();
-        }
-        return;
-    }
-    if (__requestReceived && (digitalRead(CLK) == HIGH))
-    {
-
-        if (__outputPayloadByteCount > __numOfBytesToSend)
-        {
-            __detachInterruptOnCLK();
-            Serial.println("This should not happen: we are asked to send more bytes than intended");
-            return;
-        }
-        digitalWrite(DATA, __currentOutputByte & 1);
-        __clockCount++;
-        __currentOutputByte >>= 1;
-        if (__clockCount == 8)
-        {
-            if (!__headerSent)
+            if (__numOfExpectedBytes == 0)
             {
-                __headerSent = true;
+                // No payload attached
+                __state = REQUEST_RECEIVED;
             }
             else
             {
-                __outputPayloadByteCount += 1;
+                // Should receive payload
+                __state = HEADER_RECEIVED;
             }
-            __clockCount        = 0;
-            __currentOutputByte = __outputBuffer[__outputPayloadByteCount];
         }
+    }
+    else if (__state == HEADER_RECEIVED && (digitalRead(CLK) == LOW))
+    {
+        ThreeWireSPISlave::inputBuffer[__inputPayloadByteCount] |= (uint8_t)digitalRead(DATA)
+                                                                   << __clockCount;
+        __clockCount = (__clockCount + 1) & 0b111;
+        if (__clockCount == 0)
+        {
+            __inputPayloadByteCount += 1;
+            if (__inputPayloadByteCount == __numOfExpectedBytes)
+            {
+                __state = REQUEST_RECEIVED;
+            }
+        }
+    }
+    else if (__state == REQUEST_PROCESSED && (digitalRead(CLK) == HIGH))
+    {
+        digitalWrite(DATA, __currentOutputByte & 1);
+        __clockCount = (__clockCount + 1) & 0b111;
+        __currentOutputByte >>= 1;
+        if (__clockCount == 0)
+        {
+            if (__numOfBytesToSend == 0)
+            {
+                __state = RESPONSE_SENT;
+            }
+            else
+            {
+                __state             = HEADER_SENT;
+                __currentOutputByte = ThreeWireSPISlave::outputBuffer[0];
+            }
+        }
+    }
+    else if (__state == HEADER_SENT && (digitalRead(CLK) == HIGH))
+    {
+        digitalWrite(DATA, __currentOutputByte & 1);
+        __currentOutputByte >>= 1;
+        __clockCount = (__clockCount + 1) & 0b111;
+        if (__clockCount == 0)
+        {
+            __outputPayloadByteCount += 1;
+            if (__outputPayloadByteCount == __numOfBytesToSend)
+            {
+                __state = RESPONSE_SENT;
+            }
+            else
+            {
+                __currentOutputByte = ThreeWireSPISlave::outputBuffer[__outputPayloadByteCount];
+            }
+        }
+    }
+    else if (__state == RESPONSE_SENT)
+    {
+        __detachInterruptOnCLK();
+        Serial.print("Response sent - bytes: ");
+        Serial.println(__outputPayloadByteCount);
+        __state = IDLE;
     }
 }
 
@@ -95,46 +126,17 @@ static void __enableSPI()
     {
         __detachInterruptOnCLK();
         pinMode(DATA, INPUT); // go tristate
+        __state = IDLE;
     }
     else
     {
         __numOfExpectedBytes    = 0;
         __clockCount            = 0;
         __inputPayloadByteCount = 0;
-        __headerReceived        = false;
-        __requestReceived       = false;
-        __headerSent            = false;
+        __state                 = RECEIVING_HEADER;
         __attachInterruptOnCLK();
+        __outputPayloadByteCount = 0;
     }
-}
-
-void __processRequest()
-{
-    pinMode(DATA, OUTPUT); // own the bus
-    Serial.print("Expected bytes: ");
-    Serial.println(__numOfExpectedBytes);
-    if (__numOfExpectedBytes == 0)
-    {
-        return;
-    }
-    if (__inputBuffer[0] == 0xff)
-    {
-        // LOOP back
-        memcpy((void*)__outputBuffer, (const void*)__inputBuffer, __numOfExpectedBytes);
-        __numOfBytesToSend = __numOfExpectedBytes;
-    }
-    else
-    {
-        // TODO: Fill in the output buffer with a meaningful answer.
-        __outputBuffer[0]  = 0xa5;
-        __outputBuffer[1]  = 0xa5;
-        __outputBuffer[2]  = 0xa5;
-        __numOfBytesToSend = 3;
-    }
-    __currentOutputByte      = __numOfBytesToSend; // this is the first byte that will be sent
-    __outputPayloadByteCount = 0;
-    Serial.print("Sending bytes: ");
-    Serial.println(__numOfBytesToSend);
 }
 
 #endif /* MODE_SLAVE */
