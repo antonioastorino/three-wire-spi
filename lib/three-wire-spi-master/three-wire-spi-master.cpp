@@ -1,10 +1,12 @@
+#ifdef MODE_MASTER
 #include "three-wire-spi-master.h"
 #define PULSE_US (100)
-#define CLK (15)
-#define DATA (14)
 
-ThreeWireSPIMaster::ThreeWireSPIMaster(void)
+ThreeWireSPIMaster::ThreeWireSPIMaster(uint8_t cs_n)
 {
+    this->__cs_n = cs_n;
+    digitalWrite(this->__cs_n, HIGH);
+    pinMode(this->__cs_n, OUTPUT);
     digitalWrite(CLK, HIGH);
     pinMode(CLK, OUTPUT);
     pinMode(DATA, INPUT); // keep it at high-z by default
@@ -42,9 +44,9 @@ void ThreeWireSPIMaster::__sendByte(uint8_t byteToSend)
     }
 }
 
-void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
+void ThreeWireSPIMaster::sendAndReceive(uint8_t numOfBytesToSend)
 {
-    digitalWrite(CS_n, LOW);
+    digitalWrite(this->__cs_n, LOW);
     delayMicroseconds(400);
     this->__expectedNumOfBytes = 0;
     uint8_t byteNumber         = 0;
@@ -62,7 +64,7 @@ void ThreeWireSPIMaster::sendAndReceive(uint8_t CS_n, uint8_t numOfBytesToSend)
     {
         this->__inputBuffer[byteNumber] = ThreeWireSPIMaster::__receiveByte();
     }
-    digitalWrite(CS_n, HIGH);
+    digitalWrite(this->__cs_n, HIGH);
 }
 
 void ThreeWireSPIMaster::setOutputBufferAt(uint8_t byteNumber, uint8_t value)
@@ -76,3 +78,4 @@ uint8_t ThreeWireSPIMaster::getReceivedBufferAt(uint8_t byteNumber)
 }
 
 uint8_t ThreeWireSPIMaster::getExpectedNumOfBytes(void) { return this->__expectedNumOfBytes; }
+#endif /* MODE_MASTER */

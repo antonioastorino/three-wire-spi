@@ -1,10 +1,7 @@
+#ifdef MODE_SLAVE
 #include <Arduino.h>
-#ifdef ARDUINO_ARCH_AVR
+#include "common.h"
 #include "three-wire-spi-slave.h"
-
-#define SLAVE_CS_n (2)
-#define SLAVE_CLK (13)
-#define SLAVE_DATA (12)
 
 #define __enableInterruptPortB() PCICR |= B00000001
 #define __attachInterruptOnCLK() PCMSK0 |= B00100000
@@ -28,18 +25,18 @@ static void __enableSPI();
 
 void ThreeWireSPISlaveInit(void)
 {
-    pinMode(SLAVE_CS_n, INPUT);
-    pinMode(SLAVE_CLK, INPUT);
-    pinMode(SLAVE_DATA, INPUT); // becomes output when transmitting
-    attachInterrupt(digitalPinToInterrupt(SLAVE_CS_n), __enableSPI, CHANGE);
+    pinMode(CS_n, INPUT);
+    pinMode(CLK, INPUT);
+    pinMode(DATA, INPUT); // becomes output when transmitting
+    attachInterrupt(digitalPinToInterrupt(CS_n), __enableSPI, CHANGE);
     __enableInterruptPortB();
 }
 
 ISR(PCINT0_vect)
 {
-    if (!__headerReceived && (digitalRead(SLAVE_CLK) == LOW))
+    if (!__headerReceived && (digitalRead(CLK) == LOW))
     {
-        __numOfExpectedBytes |= (uint8_t)digitalRead(SLAVE_DATA) << __clockCount;
+        __numOfExpectedBytes |= (uint8_t)digitalRead(DATA) << __clockCount;
         __clockCount++;
         if (__clockCount == 8)
         {
@@ -48,9 +45,9 @@ ISR(PCINT0_vect)
         }
         return;
     }
-    if (!__requestReceived && (digitalRead(SLAVE_CLK) == LOW))
+    if (!__requestReceived && (digitalRead(CLK) == LOW))
     {
-        __inputBuffer[__inputPayloadByteCount] |= (uint8_t)digitalRead(SLAVE_DATA) << __clockCount;
+        __inputBuffer[__inputPayloadByteCount] |= (uint8_t)digitalRead(DATA) << __clockCount;
         __clockCount++;
         if (__clockCount == 8)
         {
@@ -64,7 +61,7 @@ ISR(PCINT0_vect)
         }
         return;
     }
-    if (__requestReceived && (digitalRead(SLAVE_CLK) == HIGH))
+    if (__requestReceived && (digitalRead(CLK) == HIGH))
     {
 
         if (__outputPayloadByteCount > __numOfBytesToSend)
@@ -73,7 +70,7 @@ ISR(PCINT0_vect)
             Serial.println("This should not happen: we are asked to send more bytes than intended");
             return;
         }
-        digitalWrite(SLAVE_DATA, __currentOutputByte & 1);
+        digitalWrite(DATA, __currentOutputByte & 1);
         __clockCount++;
         __currentOutputByte >>= 1;
         if (__clockCount == 8)
@@ -86,7 +83,7 @@ ISR(PCINT0_vect)
             {
                 __outputPayloadByteCount += 1;
             }
-            __clockCount = 0;
+            __clockCount        = 0;
             __currentOutputByte = __outputBuffer[__outputPayloadByteCount];
         }
     }
@@ -94,10 +91,10 @@ ISR(PCINT0_vect)
 
 static void __enableSPI()
 {
-    if (digitalRead(SLAVE_CS_n))
+    if (digitalRead(CS_n))
     {
         __detachInterruptOnCLK();
-        pinMode(SLAVE_DATA, INPUT); // go tristate
+        pinMode(DATA, INPUT); // go tristate
     }
     else
     {
@@ -113,7 +110,7 @@ static void __enableSPI()
 
 void __processRequest()
 {
-    pinMode(SLAVE_DATA, OUTPUT); // own the bus
+    pinMode(DATA, OUTPUT); // own the bus
     Serial.print("Expected bytes: ");
     Serial.println(__numOfExpectedBytes);
     if (__numOfExpectedBytes == 0)
@@ -139,6 +136,5 @@ void __processRequest()
     Serial.print("Sending bytes: ");
     Serial.println(__numOfBytesToSend);
 }
-#else
-#error Unsupported platform
-#endif
+
+#endif /* MODE_SLAVE */

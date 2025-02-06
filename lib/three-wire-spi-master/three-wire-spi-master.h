@@ -7,6 +7,7 @@ class ThreeWireSPIMaster
 {
 private:
     // We can send and receive 0 to 255 bytes - max 32 bytes
+    uint8_t __cs_n;
     uint8_t __outputBuffer[MAX_BUFFER_SIZE];
     uint8_t __inputBuffer[MAX_BUFFER_SIZE];
     uint8_t __expectedNumOfBytes = 0;
@@ -14,11 +15,12 @@ private:
     static uint8_t __receiveByte(void);
 
 public:
-    ThreeWireSPIMaster();
+    ThreeWireSPIMaster() = delete;
+    ThreeWireSPIMaster(uint8_t cs_n);
 
     void initialize(void);
-    void sendAndReceive(uint8_t CS_n, uint8_t bytesToSend);
-    void setOutputBufferAt(uint8_t byteNumber, uint8_t value); 
+    void sendAndReceive(uint8_t bytesToSend);
+    void setOutputBufferAt(uint8_t byteNumber, uint8_t value);
     uint8_t getReceivedBufferAt(uint8_t byteNumber);
     uint8_t getExpectedNumOfBytes(void);
 };
