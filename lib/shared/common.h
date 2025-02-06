@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #define MAX_BUFFER_SIZE (255)
+#define CMD_LOOPBAK (0xaa)
 // SLAVE --------------------
 #if defined(MODE_SLAVE)
 
