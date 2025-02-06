@@ -18,6 +18,35 @@ MASTER                        SLAVE(s)
 If you prefer using 4 wires instead of 3, you can easily modify this library by adding an extra line to both MASTER and SLAVE.
 However, because the communication is *simplex*, an extra line would not be beneficial except for one specific case, described in the [Limitations](https://github.com/antonioastorino/three-wire-spi?tab=readme-ov-file#limitations) section.
 
+## How to run this project
+### Setup
+The test setup I used is the following
+
+```
+     MASTER                                 SLAVE   
+Arduino Pro Micro                       Arduino UNO Rev3
+     Pin 15  ------------  CLK   ----------> Pin 13     
+     Pin 14  <-----------  DATA  ----------> Pin 12
+     Pin 16  ------------  CS_n  ----------> Pin 2 
+```
+
+The pin configuration can be found in `lib/shared/common.h`. Only the MASTER's CS_n pin is located in the main file for reasons described in the comment.
+
+> NOTE: If you intend to change `CLK` and `CS_n` pins on the SLAVE side make sure that they don't share the same interrupt flag.
+
+### Usage
+Assuming that your setup is connected and ready to be flashed, run the following.
+
+```bash
+platformio run -t upload -e uno-slave --upload-port <port-assigned-to-arduino-uno>
+platformio run -t upload -e pro-micro-master --upload-port <port-assigned-to-arduino-pro-micro>
+```
+
+I prepared, but never tested, a configuration for 2 Arduino UNO boards, in which case you should replace the second command with
+```
+platformio run -t upload -e uno-master --upload-port <port-assigned-to-another-arduino-uno>
+```
+
 ## Purpose
 This library was created to solve the problems described in this section.
 
