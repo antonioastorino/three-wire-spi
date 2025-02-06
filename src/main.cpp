@@ -6,32 +6,37 @@
  * SLAVE.
  */
 #include "three-wire-spi-master.h"
-// There could be more than one slave. For each of them, an instance of ThreeWireSPIMaster should be
-// created, each of which uses a different CS_n pin. Therefore, it's best to have all the CS pins
-// defined here, in the main file.
+// There could be more than one slave, each of which is attached to their respective MASTER's CS_n
+// pin. Instead of creating several instances of MASTER, one for each slave, one instance is created
+// and the required CS_n pin is send as a parameter to 'sendAndReceive()' method.
+
 #if defined(ARCH_PRO_MICRO)
 #define CS1_n (16)
 #elif defined(ARCH_UNO)
 #define CS1_n (10)
 #endif /* defined(ARCH_...) */
 
-ThreeWireSPIMaster SPIMaster = ThreeWireSPIMaster(CS1_n);
-
-void setup() { Serial.begin(115200); }
+void setup()
+{
+    digitalWrite(CS1_n, HIGH);
+    pinMode(CS1_n, OUTPUT);
+    ThreeWireSPIMaster::init();
+    Serial.begin(115200);
+}
 
 void loop()
 {
     uint8_t numOfBytesToSend = 2;
     uint8_t receivedBytes    = 0;
-    SPIMaster.setOutputBufferAt(0, 0x5);
-    SPIMaster.setOutputBufferAt(1, 2);
-    SPIMaster.sendAndReceive(numOfBytesToSend);
-    receivedBytes = SPIMaster.getExpectedNumOfBytes();
-    Serial.println("Should receive: ");
+    ThreeWireSPIMaster::setOutputBufferAt(0, 0x5);
+    ThreeWireSPIMaster::setOutputBufferAt(1, 2);
+    ThreeWireSPIMaster::sendAndReceive(CS1_n, numOfBytesToSend);
+    receivedBytes = ThreeWireSPIMaster::getExpectedNumOfBytes();
+    Serial.print("Should receive bytes: ");
     Serial.println(receivedBytes);
     for (uint8_t byteNr = 0; byteNr < receivedBytes; byteNr++)
     {
-        Serial.println(SPIMaster.getReceivedBufferAt(byteNr), BIN);
+        Serial.println(ThreeWireSPIMaster::getReceivedBufferAt(byteNr), BIN);
     }
     Serial.println("--------------------");
     delay(2000);
