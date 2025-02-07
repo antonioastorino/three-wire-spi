@@ -66,6 +66,23 @@ pio run -t upload -e uno-master --upload-port <port-assigned-to-another-arduino-
 ```
 
 Feel free to use any serial monitor you like to stream the MASTER's and SLAVE's output.
+Under Linux, if you want to use the Terminal, you can try
+
+```bash
+stty -F <master-or-slave-port> speed 115200 igncr -icanon -echo time 3 min 0
+tail -f <master-or-slave-port>
+```
+
+On MacOS, use `stty -f` instead of `stty -F` but I am afraid you first have to run `cat <master-or-slave-port>` in another window or in background before running the `stty command`. This should work.
+
+```bash
+cat <master-or-slave-port> &
+stty -f <master-or-slave-port> speed 115200 igncr -icanon -echo time 3 min 0
+```
+
+and use `pkill cat` to stop when you are done.
+
+An easier approach is to use Arduino IDE's monitor.
 
 ## Purpose
 This library was created to solve the problems described in this section.
