@@ -34,18 +34,38 @@ The pin configuration can be found in `lib/shared/common.h`. Only the MASTER's C
 
 > NOTE: If you intend to change `CLK` and `CS_n` pins on the SLAVE side make sure that they don't share the same interrupt flag.
 
-### Usage
-Assuming that your setup is connected and ready to be flashed, run the following.
+### Dependencies
+```bash
+curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+python3 get-platformio.py
+rm get-platformio.py
+```
+
+If the installation succeeds, the following line will be printed:
+```
+The full path to `platformio.exe` is `</path/to/platformio>`
+```
+
+I suggest you create a symbolic link to `</path/to/platformio>`, for example
 
 ```bash
-platformio run -t upload -e uno-slave --upload-port <port-assigned-to-arduino-uno>
-platformio run -t upload -e pro-micro-master --upload-port <port-assigned-to-arduino-pro-micro>
+sudo ln -s </path/to/platformio> /usr/local/bin/pio
+```
+
+### Usage
+Assuming that your setup is connected and ready to be flashed,  `cd` to the root folder of this project and run
+
+```bash
+pio run -t upload -e uno-slave --upload-port <port-assigned-to-arduino-uno>
+pio run -t upload -e pro-micro-master --upload-port <port-assigned-to-arduino-pro-micro>
 ```
 
 I prepared, but never tested, a configuration for 2 Arduino UNO boards, in which case you should replace the second command with
 ```
-platformio run -t upload -e uno-master --upload-port <port-assigned-to-another-arduino-uno>
+pio run -t upload -e uno-master --upload-port <port-assigned-to-another-arduino-uno>
 ```
+
+Feel free to use any serial monitor you like to stream the MASTER's and SLAVE's output.
 
 ## Purpose
 This library was created to solve the problems described in this section.
