@@ -1,14 +1,18 @@
 #include <Arduino.h>
 
 #if defined(MODE_MASTER)
-/* MASTER
- * This sketch initializes the 3-wire-SPI interface as MASTER and periodically transmits messages to
- * SLAVE.
- */
+/***************************************************************************************************
+ *                                             MASTER
+ * - Initialize the 3-wire-SPI interface as MASTER
+ * - Periodically transmit messages to SLAVE.
+ * - Check that the received response is correct, according to the test protocol
+ *
+ * NOTE: There could be more than one SLAVE in the network, each of which attached to its
+ *       respective MASTER's CS_n pin. For this reason, CS_n pin is not a class member but a
+ *       parameter to  be passed to 'sendAndReceive()' method. This way, one instance of MASTER can
+ *       talk to several SLAVES
+ ***************************************************************************************************/
 #include "three-wire-spi-master.h"
-// There could be more than one slave, each of which is attached to their respective MASTER's CS_n
-// pin. Instead of creating several instances of MASTER, one for each slave, one instance is created
-// and the required CS_n pin is send as a parameter to 'sendAndReceive()' method.
 
 #if defined(ARCH_PRO_MICRO)
 #define CS1_n (16)
@@ -55,7 +59,9 @@ void loop()
     break;
     case 1:
     {
-        ThreeWireSPIMaster::setOutputBufferAt(0, CMD_LOOPBAK);
+        // Test two - LOOPBACK
+        // If CMD_LOOPBACK is sent, the full sent messages is expected as a response
+        ThreeWireSPIMaster::setOutputBufferAt(0, CMD_LOOPBACK);
         ThreeWireSPIMaster::setOutputBufferAt(1, 0xaf);
         ThreeWireSPIMaster::setOutputBufferAt(2, 0xfa);
         ThreeWireSPIMaster::sendAndReceive(CS1_n, 3);
@@ -66,7 +72,7 @@ void loop()
             Serial.println(receivedBytes);
         }
         else if (
-            ThreeWireSPIMaster::getReceivedBufferAt(0) == CMD_LOOPBAK
+            ThreeWireSPIMaster::getReceivedBufferAt(0) == CMD_LOOPBACK
             && ThreeWireSPIMaster::getReceivedBufferAt(1) == 0xaf
             && ThreeWireSPIMaster::getReceivedBufferAt(2) == 0xfa)
         {
@@ -95,10 +101,12 @@ void loop()
 }
 
 #elif defined(MODE_SLAVE)
-/* SLAVE
- * This sketch initializes the 3-wire-SPI interface as SLAVE, waits for messages from MASTER, and
- * responds to them accordingly.
- */
+/***************************************************************************************************
+ *                                             SLAVE
+ * - Initialize the 3-wire-SPI interface as SLAVE
+ * - Wait for messages from MASTER
+ * - Respond to message according to a test protocol
+ ***************************************************************************************************/
 #include "three-wire-spi-slave.h"
 
 void setup()
@@ -139,7 +147,6 @@ void loop()
     }
     else
     {
-        // TODO: Fill in the output buffer with a meaningful answer.
         ThreeWireSPISlave::outputBuffer[0] = 0xa5;
         ThreeWireSPISlave::outputBuffer[1] = 0xa5;
         ThreeWireSPISlave::outputBuffer[2] = 0xa5;
