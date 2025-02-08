@@ -92,7 +92,7 @@ MASTER needs to talk to several serial devices that don't "speak" SPI (e.g., the
 Instead of connecting MASTER to such devices, a uC can be interposed as a "wrapper".
 
 ### Modularity
-MASTER needs to handle several things and it's code is getting very crowded.
+MASTER needs to handle several things and its code is getting very crowded.
 Delegating some logic to SLAVE could be beneficial, especially by designing the circuit so that SLAVE can be **programmed and tested independently.**
 
 ### Expanding device functionalities
